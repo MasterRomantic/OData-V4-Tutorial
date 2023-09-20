@@ -88,6 +88,18 @@ sap.ui.define([
 			this._bTechnicalErrors = false;
 			this._setUIChanges();
 		},
+		onResetDataSource : function () {
+			var oModel = this.getView().getModel(),
+				oOperation = oModel.bindContext("/ResetDataSource(...)");
+
+			oOperation.execute().then(function () {
+					oModel.refresh();
+					MessageToast.show(this._getText("sourceResetSuccessMessage"));
+				}.bind(this), function (oError) {
+					MessageBox.error(oError.message);
+				}
+			);
+		},
 		onRefresh: function () {
 			var oBinding = this.byId("peopleList").getBinding("items");
 
