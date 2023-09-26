@@ -20,10 +20,10 @@ sap.ui.define([
 				oMessageModelBinding = oMessageModel.bindList("/", undefined, [],
 					new Filter("technical", FilterOperator.EQ, true)),
 				oViewModel = new JSONModel({
-					busy : false,
-					hasUIChanges : false,
-					usernameEmpty : true,
-					order : 0
+					busy: false,
+					hasUIChanges: false,
+					usernameEmpty: true,
+					order: 0
 				});
 			this.getView().setModel(oViewModel, "appView");
 			this.getView().setModel(oMessageModel, "message");
@@ -52,26 +52,31 @@ sap.ui.define([
 				}
 			});
 		},
-		onDelete : function () {
-		    var oContext,
-		        oSelected = this.byId("peopleList").getSelectedItem(),
-		        sUserName;
- 
-		    if (oSelected) {
-		        oContext = oSelected.getBindingContext();
-		        sUserName = oContext.getProperty("UserName");
-		        oContext.delete().then(function () {
-		            MessageToast.show(this._getText("deletionSuccessMessage", sUserName));
-		        }.bind(this), function (oError) {
-		            this._setUIChanges();
-		            if (oError.canceled) {
-		                MessageToast.show(this._getText("deletionRestoredMessage", sUserName));
-		                return;
-		            }
-		            MessageBox.error(oError.message + ": " + sUserName);
-		        }.bind(this));
-		        this._setUIChanges(true);
-		    }
+		onDelete: function () {
+			var oContext,
+				oPeopleList = this.byId("peopleList"),
+				oSelected = oPeopleList.getSelectedItem(),
+				sUserName;
+
+			if (oSelected) {
+				oContext = oSelected.getBindingContext();
+				sUserName = oContext.getProperty("UserName");
+				oContext.delete().then(function () {
+					MessageToast.show(this._getText("deletionSuccessMessage", sUserName));
+				}.bind(this), function (oError) {
+					if (oContext === oPeopleList.getSelectedItem().getBindingContext()) {
+						this._setDetailArea(oContext);
+					}
+					this._setUIChanges();
+					if (oError.canceled) {
+						MessageToast.show(this._getText("deletionRestoredMessage", sUserName));
+						return;
+					}
+					MessageBox.error(oError.message + ": " + sUserName);
+				}.bind(this));
+				this._setDetailArea();
+				this._setUIChanges(true);
+			}
 		},
 		onInputChange: function (oEvt) {
 			if (oEvt.getParameter("escPressed")) {
@@ -88,16 +93,16 @@ sap.ui.define([
 			this._bTechnicalErrors = false;
 			this._setUIChanges();
 		},
-		onResetDataSource : function () {
+		onResetDataSource: function () {
 			var oModel = this.getView().getModel(),
 				oOperation = oModel.bindContext("/ResetDataSource(...)");
 
 			oOperation.execute().then(function () {
-					oModel.refresh();
-					MessageToast.show(this._getText("sourceResetSuccessMessage"));
-				}.bind(this), function (oError) {
-					MessageBox.error(oError.message);
-				}
+				oModel.refresh();
+				MessageToast.show(this._getText("sourceResetSuccessMessage"));
+			}.bind(this), function (oError) {
+				MessageBox.error(oError.message);
+			}
 			);
 		},
 		onRefresh: function () {
@@ -176,8 +181,28 @@ sap.ui.define([
 
 			bMessageOpen = true;
 		},
+		onSelectionChange: function (oEvent) {
+			this._setDetailArea(oEvent.getParameter("listItem").getBindingContext());
+		},
 		_getText: function (sTextId, aArgs) {
 			return this.getOwnerComponent().getModel("i18n").getResourceBundle().getText(sTextId, aArgs);
+		},
+		/**
+		* Toggles the visibility of the detail area
+		*
+		* @param {object} [oUserContext] - the current user context
+		*/
+		_setDetailArea: function (oUserContext) {
+			var oDetailArea = this.byId("detailArea"),
+				oLayout = this.byId("defaultLayout"),
+				oSearchField = this.byId("searchField");
+
+			oDetailArea.setBindingContext(oUserContext || null);
+			// resize view
+			oDetailArea.setVisible(!!oUserContext);
+			oLayout.setSize(oUserContext ? "60%" : "100%");
+			oLayout.setResizable(!!oUserContext);
+			oSearchField.setWidth(oUserContext ? "40%" : "20%");
 		},
 		_setUIChanges: function (bHasUIChanges) {
 			if (this._bTechnicalErrors) {
